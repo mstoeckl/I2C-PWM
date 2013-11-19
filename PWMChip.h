@@ -5,15 +5,13 @@
 
 class PWMChip {
 public:
-	static const int PWM_FULL = -1;
-
 	PWMChip(uint8_t module, uint8_t address);
 
-	/** highstart and lowstart are the time per period in fractions
-	 * of 4096 (range 0-4095) of the update period. If one is PWM_OFF (-1).
-	 * Each cycle, at time lowstart, the channel drops low; at time highstart, the 
-	 * channel goes high */
-	void writeChannel(int channel, int highstart, int lowstart = 0);
+	/**
+	 * Channel is from 0 to 15
+	 * Ontime is value from 0.0 to 1.0
+	 */
+	void setChannel(int channel, float ontime);
 
 	void setSleep(bool asleep);
 	void setTotemPole(bool on);
@@ -24,6 +22,11 @@ public:
 
 	~PWMChip();
 private:
+	/** highstart and lowstart are the time per period in fractions
+	 * of 4096 (range 0-4095) of the update period. If one is PWM_OFF (-1).
+	 * Each cycle, at time lowstart, the channel drops low; at time highstart, the 
+	 * channel goes high */
+	void writeChannel(uint8_t channel, int highstart, int lowstart);
 	void writeSubChannel(uint8_t subchannel, bool full, uint32_t period);
 	void setRegisterBit(uint8_t reg, uint8_t mask, bool high);
 	I2C* pwm_bank;

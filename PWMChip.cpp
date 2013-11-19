@@ -1,6 +1,8 @@
 #include "PWMChip.h"
 
-const int REGBANK_OFFSET = 6;
+const int PWM_FULL = -1;
+
+const uint8_t REGBANK_OFFSET = 0x06;
 
 // registers for the i2c
 const uint8_t PRE_SCALE = 0xFE;
@@ -24,6 +26,21 @@ PWMChip::PWMChip(uint8_t module, uint8_t address) {
 
 PWMChip::~PWMChip() {
 	delete pwm_bank;
+}
+
+void PWMChip::setChannel(int channel, float ontime) {
+	if (channel < 0 || channel > 15) {
+		printf("Channel out of range 0-15; given %i.\n", channel);
+		return;
+	}
+
+	if (ontime >= 1.0f) {
+		writeChannel(channel, PWM_FULL, 0);
+	} else if (ontime <= 0.0f) {
+		writeChannel(channel, 0, PWM_FULL);
+	} else {
+		writeChannel(channel, 0, (int) (ontime * 4096.0));
+	}
 }
 
 void PWMChip::setPreScale(float update_rate) {
@@ -62,7 +79,7 @@ void PWMChip::setRegisterBit(uint8_t reg, uint8_t mask, bool high) {
 	pwm_bank->Write(reg, s_mod1);
 }
 
-void PWMChip::writeChannel(int channel, int highstart, int lowstart) {
+void PWMChip::writeChannel(uint8_t channel, int highstart, int lowstart) {
 	writeSubChannel(channel * 2, (highstart == PWM_FULL), highstart);
 	writeSubChannel(channel * 2 + 1, (lowstart == PWM_FULL), lowstart);
 }

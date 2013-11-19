@@ -18,8 +18,27 @@ public:
 
 	void OperatorControl(void) {
 		printf("OPCONT\n");
+		// we change LED1 frequency
+		int i = 0;
 		while (IsOperatorControl() && IsEnabled()) {
-			Wait(0.1);
+			switch (i) {
+			case 0:
+				pwms->setChannel(0, 1.0);
+				break;
+			case 1:
+				pwms->setChannel(0, 0.0);
+				break;
+			case 2:
+				pwms->setChannel(0, 0.5);
+				break;
+			case 3:
+				pwms->setChannel(0, 0.25);
+				break;
+			}
+
+			Wait(1.0);
+
+			i++;
 		}
 	}
 
@@ -29,26 +48,6 @@ public:
 
 	void Disabled() {
 		printf("Disabled\n");
-		// we change LED1 frequency
-		int i = 0;
-		while (IsOperatorControl() && IsEnabled()) {
-			switch (i) {
-			case 0:
-				pwms->writeChannel(0, PWMChip::PWM_FULL);
-				break;
-			case 1:
-				pwms->writeChannel(0, 0);
-				break;
-			case 2:
-				pwms->writeChannel(0, 2047);
-				break;
-			case 3:
-				pwms->writeChannel(0, 1023);
-				break;
-			}
-
-			Wait(0.005);
-		}
 	}
 };
 
