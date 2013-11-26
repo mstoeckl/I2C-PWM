@@ -1,7 +1,5 @@
 #include "PWMChip.h"
 
-// TODO: add GetRegister(...), GetRegisterBit(...)
-
 const int PWM_FULL = -1;
 
 const uint8_t REGBANK_OFFSET = 0x06;
@@ -61,15 +59,25 @@ void PWMChip::setPreScale(float update_rate) {
 	}
 	uint8_t val = (uint8_t) (float) (OSC_CLOCK / (4096 * update_rate) - 1.0);
 
-	setSleep(true);
+	bool sleeping;
+	getSleep(sleeping);
+	if (!sleeping) {
+		setSleep(true);
+	}
 	bool aborted = pwm_bank->Write(PRE_SCALE, val);
 	if (aborted)
 		printf("I2C %3d: Failed to write prescale byte\n", address);
-	setSleep(false);
+	if (!sleeping) {
+		setSleep(false);
+	}
 }
 
 void PWMChip::setSleep(bool asleep) {
 	setRegisterBit(MODE_1, MASK_SLEEP, asleep);
+}
+
+void PWMChip::getSleep(bool &asleep) {
+	getRegisterBit(MODE_1, MASK_SLEEP, asleep);
 }
 
 void PWMChip::setTotemPole(bool on) {
@@ -77,20 +85,29 @@ void PWMChip::setTotemPole(bool on) {
 }
 
 void PWMChip::setRegisterBit(uint8_t reg, uint8_t mask, bool high) {
-	uint8_t s_mod1;
-	if (pwm_bank->Read(reg, 1, &s_mod1)) {
-		printf("I2C %3d: Failed to read bit\n", address);
+	uint8_t data;
+	if (pwm_bank->Read(reg, 1, &data)) {
+		printf("I2C %3d: Failed to read byte\n", address);
 		return;
 	}
 	if (high) {
-		s_mod1 |= mask;
+		data |= mask;
 	} else {
-		s_mod1 &= (~mask);
+		data &= (~mask);
 	}
-	if (pwm_bank->Write(reg, s_mod1)) {
-		printf("I2C %3d: Failed to write bit\n", address);
+	if (pwm_bank->Write(reg, data)) {
+		printf("I2C %3d: Failed to write byte\n", address);
 		return;
 	}
+}
+
+void PWMChip::getRegisterBit(uint8_t reg, uint8_t mask, bool &value) {
+	uint8_t data;
+	if (pwm_bank->Read(reg, 1, &data)) {
+		printf("I2C %3d: Failed to read bit\n", address);
+		return;
+	}
+	value = (data & mask);
 }
 
 void PWMChip::writeChannel(uint8_t channel, int highstart, int lowstart) {

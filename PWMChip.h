@@ -13,14 +13,16 @@ public:
 	 */
 	void setChannel(int channel, float ontime);
 
+	void getSleep(bool &asleep);
 	void setSleep(bool asleep);
+	
 	void setTotemPole(bool on);
 
 	/** Takes a value in Hz. Wakes up the PWM chip
 	 * Range is 23.8 Hz to 6104 Hz */
 	void setPreScale(float update_rate);
 
-	~PWMChip();
+	virtual ~PWMChip();
 private:
 	/** highstart and lowstart are the time per period in fractions
 	 * of 4096 (range 0-4095) of the update period. If one is PWM_OFF (-1).
@@ -28,7 +30,10 @@ private:
 	 * channel goes high */
 	void writeChannel(uint8_t channel, int highstart, int lowstart);
 	void writeSubChannel(uint8_t subchannel, bool full, uint32_t period);
+	
 	void setRegisterBit(uint8_t reg, uint8_t mask, bool high);
+	void getRegisterBit(uint8_t reg, uint8_t mask, bool &value);
+	
 	I2C* pwm_bank;
 	uint8_t address;
 };

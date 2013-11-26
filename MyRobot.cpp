@@ -11,6 +11,10 @@ public:
 		pwms = new PWMChip(1, ADDRESS);
 		pwms->setTotemPole(true);
 		pwms->setPreScale(100.0); // 100 Hz
+		bool asleep;
+		pwms->getSleep(asleep);
+		printf("Is asleep: %s\n", asleep ? "YES" : "NO");
+		pwms->setSleep(false);
 	}
 
 	void Autonomous(void) {
