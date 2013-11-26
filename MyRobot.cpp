@@ -7,13 +7,10 @@ class I_TOO_SEE_YOU: public SimpleRobot {
 	PWMChip* pwms;
 public:
 	void RobotInit() {
-		printf("Creating!\n");
+		printf("ROBOT INIT!\n");
 		pwms = new PWMChip(1, ADDRESS);
-		printf("Setting Totempole\n");
 		pwms->setTotemPole(true);
-		printf("Setting prescaler\n");
 		pwms->setPreScale(100.0); // 100 Hz
-		printf("Init done!\n");
 	}
 
 	void Autonomous(void) {
@@ -52,7 +49,7 @@ public:
 	}
 
 	void Disabled() {
-		printf("Disabled\n");
+		printf("DISABLED\n");
 	}
 };
 
