@@ -30,6 +30,7 @@ private:
 	void writeSubChannel(uint8_t subchannel, bool full, uint32_t period);
 	void setRegisterBit(uint8_t reg, uint8_t mask, bool high);
 	I2C* pwm_bank;
+	uint8_t address;
 };
 
 #endif // __PWM_CHIPSIE_H_

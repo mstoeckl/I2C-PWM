@@ -1,15 +1,19 @@
 #include "WPILib.h"
 #include "PWMChip.h"
 
-const uint8_t ADDRESS = 0x00; // TODO set this
+const uint8_t ADDRESS = 0x80; // 1 000000 x
 
 class I_TOO_SEE_YOU: public SimpleRobot {
 	PWMChip* pwms;
 public:
-	I_TOO_SEE_YOU(void) {
+	void RobotInit() {
+		printf("Creating!\n");
 		pwms = new PWMChip(1, ADDRESS);
+		printf("Setting Totempole\n");
 		pwms->setTotemPole(true);
+		printf("Setting prescaler\n");
 		pwms->setPreScale(100.0); // 100 Hz
+		printf("Init done!\n");
 	}
 
 	void Autonomous(void) {
@@ -21,6 +25,7 @@ public:
 		// we change LED1 frequency
 		int i = 0;
 		while (IsOperatorControl() && IsEnabled()) {
+			printf("Cycle %d\n", i);
 			switch (i) {
 			case 0:
 				pwms->setChannel(0, 1.0);
@@ -38,7 +43,7 @@ public:
 
 			Wait(1.0);
 
-			i++;
+			i = (i + 1) % 4;
 		}
 	}
 

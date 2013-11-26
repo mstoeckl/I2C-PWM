@@ -1,5 +1,7 @@
 #include "PWMChip.h"
 
+// TODO: add GetRegister(...), GetRegisterBit(...)
+
 const int PWM_FULL = -1;
 
 const uint8_t REGBANK_OFFSET = 0x06;
@@ -22,6 +24,10 @@ const float OSC_CLOCK = 25000000;// 25 MHz
 
 PWMChip::PWMChip(uint8_t module, uint8_t address) {
 	pwm_bank = DigitalModule::GetInstance(module)->GetI2C(address);
+	this->address = address;
+	if (pwm_bank->AddressOnly()) {
+		printf("I2C %3d: Cannot connect\n", address);
+	}
 }
 
 PWMChip::~PWMChip() {
@@ -56,7 +62,9 @@ void PWMChip::setPreScale(float update_rate) {
 	uint8_t val = (uint8_t) (float) (OSC_CLOCK / (4096 * update_rate) - 1.0);
 
 	setSleep(true);
-	pwm_bank->Write(PRE_SCALE, val);
+	bool aborted = pwm_bank->Write(PRE_SCALE, val);
+	if (aborted)
+		printf("I2C %3d: Failed to write prescale byte\n", address);
 	setSleep(false);
 }
 
@@ -70,13 +78,19 @@ void PWMChip::setTotemPole(bool on) {
 
 void PWMChip::setRegisterBit(uint8_t reg, uint8_t mask, bool high) {
 	uint8_t s_mod1;
-	pwm_bank->Read(reg, 1, &s_mod1);
+	if (pwm_bank->Read(reg, 1, &s_mod1)) {
+		printf("I2C %3d: Failed to read bit\n", address);
+		return;
+	}
 	if (high) {
 		s_mod1 |= mask;
 	} else {
 		s_mod1 &= (~mask);
 	}
-	pwm_bank->Write(reg, s_mod1);
+	if (pwm_bank->Write(reg, s_mod1)) {
+		printf("I2C %3d: Failed to write bit\n", address);
+		return;
+	}
 }
 
 void PWMChip::writeChannel(uint8_t channel, int highstart, int lowstart) {
@@ -94,9 +108,13 @@ void PWMChip::writeSubChannel(uint8_t subchannel, bool full, uint32_t period) {
 	uint8_t high4 = (uint8_t) (p >> 8); // pattern 0x0a
 
 	if (full) {
-		pwm_bank->Write(reg, MASK_FULL);// sets 4th bit
+		if (pwm_bank->Write(reg, MASK_FULL)) {
+			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
+			return;
+		}
 	} else {
-		pwm_bank->Write(reg, high4);
-		pwm_bank->Write(reg + 1, low8);
+		if (pwm_bank->Write(reg, high4) || pwm_bank->Write(reg + 1, low8)) {
+			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
+		}
 	}
 }
