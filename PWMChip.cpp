@@ -47,6 +47,11 @@ void PWMChip::setChannel(int channel, float ontime) {
 	}
 }
 
+void PWMChip::getChannel(int channel, bool &highfull, int &high, bool &lowfull, int &low) {
+	getSubChannel(channel * 2, highfull, high);
+	getSubChannel(channel * 2 + 1, lowfull, low);
+}
+
 void PWMChip::setPreScale(float update_rate) {
 	if (update_rate < 23.8) {
 		printf(
@@ -134,4 +139,15 @@ void PWMChip::writeSubChannel(uint8_t subchannel, bool full, uint32_t period) {
 			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
 		}
 	}
+}
+
+void PWMChip::getSubChannel(uint8_t subchannel, bool &full, int &start) {
+	uint8_t high, low, reg;
+	reg = subchannel * 2 + REGBANK_OFFSET;
+	if (pwm_bank->Read(reg, 1, &high) || pwm_bank->Read(reg+1, 1, &low)) {
+		printf("I2C %3d: Failed to read subchannel bytes\n", address);
+	}
+	uint32_t s = ((uint32_t)(high << 4) << 4) | ((uint32_t)low);
+	start = (int) s;
+	full = (MASK_FULL & high);
 }

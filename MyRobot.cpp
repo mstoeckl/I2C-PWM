@@ -24,6 +24,9 @@ public:
 	void OperatorControl(void) {
 		printf("OPCONT\n");
 		// we change LED1 frequency
+		bool hf, lf;
+		int hs, ls;
+		
 		int i = 0;
 		while (IsOperatorControl() && IsEnabled()) {
 			printf("Cycle %d\n", i);
@@ -41,6 +44,9 @@ public:
 				pwms->setChannel(0, 0.25);
 				break;
 			}
+
+			pwms->getChannel(0, hf, hs, lf, ls);
+			printf("HF %d| HS %d| LF %d|LS %d\n", hf, hs, lf, ls);
 
 			Wait(1.0);
 

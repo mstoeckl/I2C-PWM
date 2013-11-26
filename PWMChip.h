@@ -12,6 +12,7 @@ public:
 	 * Ontime is value from 0.0 to 1.0
 	 */
 	void setChannel(int channel, float ontime);
+	void getChannel(int channel, bool &highfull, int &high, bool &lowfull, int &low);
 
 	void getSleep(bool &asleep);
 	void setSleep(bool asleep);
@@ -30,6 +31,7 @@ private:
 	 * channel goes high */
 	void writeChannel(uint8_t channel, int highstart, int lowstart);
 	void writeSubChannel(uint8_t subchannel, bool full, uint32_t period);
+	void getSubChannel(uint8_t subchannel, bool &full, int &start);
 	
 	void setRegisterBit(uint8_t reg, uint8_t mask, bool high);
 	void getRegisterBit(uint8_t reg, uint8_t mask, bool &value);
