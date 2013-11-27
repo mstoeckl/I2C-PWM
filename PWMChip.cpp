@@ -126,16 +126,17 @@ void PWMChip::writeSubChannel(uint8_t subchannel, bool full, uint32_t period) {
 	uint32_t p = period & 0x00000FFF; // pattern 0x00000abc
 	// do math as per pdf here!
 	uint8_t reg = subchannel * 2 + REGBANK_OFFSET;
-	uint8_t low8 = (uint8_t) (p & 0x000000FF); // pattern 0xbc
+	uint8_t low8 = (uint8_t) (p); // pattern 0xbc
 	uint8_t high4 = (uint8_t) (p >> 8); // pattern 0x0a
-
+    uint8_t high8 = high4 & (~MASK_FULL);
+    
 	if (full) {
 		if (pwm_bank->Write(reg, MASK_FULL)) {
 			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
 			return;
 		}
 	} else {
-		if (pwm_bank->Write(reg, high4) || pwm_bank->Write(reg + 1, low8)) {
+        if (pwm_bank->Write(reg, high8) || pwm_bank->Write(reg + 1, low8)) {
 			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
 		}
 	}
@@ -146,8 +147,9 @@ void PWMChip::getSubChannel(uint8_t subchannel, bool &full, int &start) {
 	reg = subchannel * 2 + REGBANK_OFFSET;
 	if (pwm_bank->Read(reg, 1, &high) || pwm_bank->Read(reg+1, 1, &low)) {
 		printf("I2C %3d: Failed to read subchannel bytes\n", address);
+        return;
 	}
-	uint32_t s = ((uint32_t)(high << 4) << 4) | ((uint32_t)low);
+	uint32_t s = (((uint32_t)(high << 4)) << 4) | ((uint32_t)low);
 	start = (int) s;
 	full = (MASK_FULL & high);
 }
