@@ -18,6 +18,8 @@ public:
 	void setSleep(bool asleep);
 	
 	void setTotemPole(bool on);
+    
+    void setAllChannels(float ontime);
 
 	/** Takes a value in Hz. Wakes up the PWM chip
 	 * Range is 23.8 Hz to 6104 Hz */

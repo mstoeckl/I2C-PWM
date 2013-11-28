@@ -3,6 +3,19 @@
 
 const uint8_t ADDRESS = 0x80; // 1 000000 x
 
+bool testSleep(PWMChip* pwm) {
+    bool asleep;
+    pwm->getSleep(asleep);
+    return asleep;
+}
+
+void printChannel(PWMChip* pwm, int channel) {
+    bool hf, lf;
+    int hs, ls;
+    pwm->getChannel(channel, hf, hs, lf, ls);
+    printf("%2d::HF %d| HS %d| LF %d|LS %d\n", channel, hf, hs, lf, ls);
+}
+
 class I_TOO_SEE_YOU: public SimpleRobot {
 	PWMChip* pwms;
 public:
@@ -11,17 +24,30 @@ public:
 		pwms = new PWMChip(1, ADDRESS);
 		pwms->setTotemPole(true);
 		pwms->setPreScale(100.0); // 100 Hz
-		bool asleep;
-		pwms->getSleep(asleep);
-		printf("Is asleep: %s\n", asleep ? "YES" : "NO");
+        printf("Before: Is asleep: %s\n", testSleep(pwms) ? "YES" : "NO");
 		pwms->setSleep(false);
+        printf("After:  Is asleep: %s\n", testSleep(pwms) ? "YES" : "NO");
 	}
 
 	void Autonomous(void) {
-		printf("AUTON\n");
+        printf("AUTON\n");
+
+        printChannel(pwms, 0);
+        printChannel(pwms, 1);
+        
+        pwms->setAllChannels(0.673);
+
+        printChannel(pwms, 0);
+        printChannel(pwms, 1);
+
+        pwms->setChannel(0, 0.200);
+        
+        printChannel(pwms, 0);
+        printChannel(pwms, 1);
 	}
 
 	void OperatorControl(void) {
+        const int CYCLES = 200;
 		printf("OPCONT\n");
 		// we change LED1 frequency
 		bool hf, lf;
@@ -29,28 +55,15 @@ public:
 		
 		int i = 0;
 		while (IsOperatorControl() && IsEnabled()) {
-			printf("Cycle %d\n", i);
-			switch (i) {
-			case 0:
-				pwms->setChannel(0, 1.0);
-				break;
-			case 1:
-				pwms->setChannel(0, 0.0);
-				break;
-			case 2:
-				pwms->setChannel(0, 0.5);
-				break;
-			case 3:
-				pwms->setChannel(0, 0.25);
-				break;
-			}
+            float time = i / CYCLES;
+			printf("Write: %1.4f\n", time);
+            pwms->setChannel(0, time);
 
-			pwms->getChannel(0, hf, hs, lf, ls);
-			printf("HF %d| HS %d| LF %d|LS %d\n", hf, hs, lf, ls);
+            printChannel(pwms, 0);
 
-			Wait(1.0);
+			i = (i+1)%(CYCLES+1);
 
-			i = (i + 1) % 4;
+            Wait(0.05);
 		}
 	}
 

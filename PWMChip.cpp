@@ -32,19 +32,36 @@ PWMChip::~PWMChip() {
 	delete pwm_bank;
 }
 
+void PWMChip::setAllChannels(float ontime) {
+    if (ontime >= 1.0f) {
+        writeChannel(channel, PWM_FULL, 0);
+    } else if (ontime <= 0.0f) {
+        writeChannel(channel, 0, PWM_FULL);
+    } else {
+        writeChannel(channel, 0, (int) (ontime * 4096.0));
+    }
+}
+
 void PWMChip::setChannel(int channel, float ontime) {
 	if (channel < 0 || channel > 15) {
 		printf("Channel out of range 0-15; given %i.\n", channel);
 		return;
 	}
+	int highstart, lowstart;
 
 	if (ontime >= 1.0f) {
-		writeChannel(channel, PWM_FULL, 0);
+        highstart = PWM_FULL;
+        lowstart = 0;
 	} else if (ontime <= 0.0f) {
-		writeChannel(channel, 0, PWM_FULL);
+        highstart = 0;
+        lowstart = PWM_FULL;
 	} else {
-		writeChannel(channel, 0, (int) (ontime * 4096.0));
+        highstart = 0;
+        lowstart = (int) (ontime * 4096.0);
 	}
+	
+    writeSubChannel(ALL_LED_START, (highstart == PWM_FULL), highstart);
+    writeSubChannel(ALL_LED_START+2, (lowstart == PWM_FULL), lowstart);
 }
 
 void PWMChip::getChannel(int channel, bool &highfull, int &high, bool &lowfull, int &low) {
@@ -113,19 +130,21 @@ void PWMChip::getRegisterBit(uint8_t reg, uint8_t mask, bool &value) {
 		return;
 	}
 	value = (data & mask);
+    printf("Reg %x data %x ret %c\n", reg, data, value ? 'Y' : 'N');
 }
 
 void PWMChip::writeChannel(uint8_t channel, int highstart, int lowstart) {
-	writeSubChannel(channel * 2, (highstart == PWM_FULL), highstart);
-	writeSubChannel(channel * 2 + 1, (lowstart == PWM_FULL), lowstart);
+    uint8_t* reg1 = subchannel * 2 + REGBANK_OFFSET;
+    writeSubChannel(reg1, (highstart == PWM_FULL), highstart);
+    writeSubChannel(reg1+2, (lowstart == PWM_FULL), lowstart);
 }
 
 // only 12 lsb of period matters.
 // if not enabled
-void PWMChip::writeSubChannel(uint8_t subchannel, bool full, uint32_t period) {
+void PWMChip::writeSubChannel(uint8_t register_start, bool full, uint32_t period) {
 	uint32_t p = period & 0x00000FFF; // pattern 0x00000abc
 	// do math as per pdf here!
-	uint8_t reg = subchannel * 2 + REGBANK_OFFSET;
+	uint8_t reg = register_start;
 	uint8_t low8 = (uint8_t) (p); // pattern 0xbc
 	uint8_t high4 = (uint8_t) (p >> 8); // pattern 0x0a
     uint8_t high8 = high4 & (~MASK_FULL);
@@ -150,6 +169,7 @@ void PWMChip::getSubChannel(uint8_t subchannel, bool &full, int &start) {
         return;
 	}
 	uint32_t s = (((uint32_t)(high << 4)) << 4) | ((uint32_t)low);
+    printf("Subchannel conv: H%x L%x -> %x\n", high, low, s);
 	start = (int) s;
 	full = (MASK_FULL & high);
 }
