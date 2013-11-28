@@ -1,5 +1,17 @@
 #include "PWMChip.h"
 
+//  0   1   2   3   4   5   6   7
+//0x01  02  04  08  10  20  40  80
+
+typedef enum {kBit0=0x01,
+    kBit1=0x02,
+    kBit2=0x04,
+    kBit3=0x08,
+    kBit4=0x10,
+    kBit5=0x20,
+    kBit6=0x40,
+    kBit7=0x80} bitmask;
+
 const int PWM_FULL = -1;
 
 const uint8_t REGBANK_OFFSET = 0x06;
@@ -13,10 +25,10 @@ const uint8_t LED_BANK_START = 0x06;
 const uint8_t MODE_1 = 0x00;
 const uint8_t MODE_2 = 0x01;
 
-const uint8_t MASK_FULL = 0x20; // bit 4
+const uint8_t MASK_FULL = kBit4; // bit 4
 
-const uint8_t MASK_SLEEP = 0x20; // bit 4
-const uint8_t MASK_OUTDRV = 0x04; // bit 2
+const uint8_t MASK_SLEEP = kBit4; // bit 4
+const uint8_t MASK_OUTDRV = kBit2; // bit 2
 
 const float OSC_CLOCK = 25000000;// 25 MHz
 
