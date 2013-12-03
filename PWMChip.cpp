@@ -3,14 +3,16 @@
 //  0   1   2   3   4   5   6   7
 //0x01  02  04  08  10  20  40  80
 
-typedef enum {kBit0=0x01,
-    kBit1=0x02,
-    kBit2=0x04,
-    kBit3=0x08,
-    kBit4=0x10,
-    kBit5=0x20,
-    kBit6=0x40,
-    kBit7=0x80} bitmask;
+typedef enum {
+	kBit0 = 0x01,
+	kBit1 = 0x02,
+	kBit2 = 0x04,
+	kBit3 = 0x08,
+	kBit4 = 0x10,
+	kBit5 = 0x20,
+	kBit6 = 0x40,
+	kBit7 = 0x80
+} bitmask;
 
 const int PWM_FULL = -1;
 
@@ -44,14 +46,21 @@ PWMChip::~PWMChip() {
 	delete pwm_bank;
 }
 
+void PWMChip::printChannel(int channel) {
+	bool hf, lf;
+	int hs, ls;
+	getChannel(channel, hf, hs, lf, ls);
+	printf("%2d -> HF %d| HS %x| LF %d|LS %x\n", channel, hf, hs, lf, ls);
+}
+
 void PWMChip::setAllChannels(float ontime) {
-    if (ontime >= 1.0f) {
-        writeChannel(channel, PWM_FULL, 0);
-    } else if (ontime <= 0.0f) {
-        writeChannel(channel, 0, PWM_FULL);
-    } else {
-        writeChannel(channel, 0, (int) (ontime * 4096.0));
-    }
+	if (ontime >= 1.0f) {
+		writeChannelBlock(ALL_LED_START, PWM_FULL, 0);
+	} else if (ontime <= 0.0f) {
+		writeChannelBlock(ALL_LED_START, 0, PWM_FULL);
+	} else {
+		writeChannelBlock(ALL_LED_START, 0, (int) (ontime * 4096.0));
+	}
 }
 
 void PWMChip::setChannel(int channel, float ontime) {
@@ -62,21 +71,22 @@ void PWMChip::setChannel(int channel, float ontime) {
 	int highstart, lowstart;
 
 	if (ontime >= 1.0f) {
-        highstart = PWM_FULL;
-        lowstart = 0;
+		highstart = PWM_FULL;
+		lowstart = 0;
 	} else if (ontime <= 0.0f) {
-        highstart = 0;
-        lowstart = PWM_FULL;
+		highstart = 0;
+		lowstart = PWM_FULL;
 	} else {
-        highstart = 0;
-        lowstart = (int) (ontime * 4096.0);
+		highstart = 0;
+		lowstart = (int) (ontime * 4096.0);
 	}
-	
-    writeSubChannel(ALL_LED_START, (highstart == PWM_FULL), highstart);
-    writeSubChannel(ALL_LED_START+2, (lowstart == PWM_FULL), lowstart);
+
+	uint8_t block = channel * 4 + REGBANK_OFFSET;
+	writeChannelBlock(block, highstart, lowstart);
 }
 
-void PWMChip::getChannel(int channel, bool &highfull, int &high, bool &lowfull, int &low) {
+void PWMChip::getChannel(int channel, bool &highfull, int &high, bool &lowfull,
+		int &low) {
 	getSubChannel(channel * 2, highfull, high);
 	getSubChannel(channel * 2 + 1, lowfull, low);
 }
@@ -142,33 +152,34 @@ void PWMChip::getRegisterBit(uint8_t reg, uint8_t mask, bool &value) {
 		return;
 	}
 	value = (data & mask);
-    printf("Reg %x data %x ret %c\n", reg, data, value ? 'Y' : 'N');
 }
 
-void PWMChip::writeChannel(uint8_t channel, int highstart, int lowstart) {
-    uint8_t* reg1 = subchannel * 2 + REGBANK_OFFSET;
-    writeSubChannel(reg1, (highstart == PWM_FULL), highstart);
-    writeSubChannel(reg1+2, (lowstart == PWM_FULL), lowstart);
+void PWMChip::writeChannelBlock(uint8_t block, int highstart, int lowstart) {
+	writeSubChannel(block, (highstart == PWM_FULL), highstart);
+	writeSubChannel(block + 2, (lowstart == PWM_FULL), lowstart);
 }
 
 // only 12 lsb of period matters.
 // if not enabled
-void PWMChip::writeSubChannel(uint8_t register_start, bool full, uint32_t period) {
+void PWMChip::writeSubChannel(uint8_t register_start, bool full,
+		uint32_t period) {
 	uint32_t p = period & 0x00000FFF; // pattern 0x00000abc
 	// do math as per pdf here!
 	uint8_t reg = register_start;
 	uint8_t low8 = (uint8_t) (p); // pattern 0xbc
 	uint8_t high4 = (uint8_t) (p >> 8); // pattern 0x0a
-    uint8_t high8 = high4 & (~MASK_FULL);
-    
+	uint8_t high8 = high4 & (~MASK_FULL);
+
 	if (full) {
-		if (pwm_bank->Write(reg, MASK_FULL)) {
-			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
+		if (pwm_bank->Write(reg + 1, MASK_FULL)) {
+			printf("I2C %3d: Failed to write to subchannel %d\n", address,
+					register_start);
 			return;
 		}
 	} else {
-        if (pwm_bank->Write(reg, high8) || pwm_bank->Write(reg + 1, low8)) {
-			printf("I2C %3d: Failed to write to subchannel %d\n", address, subchannel);
+		if (pwm_bank->Write(reg, low8) || pwm_bank->Write(reg + 1, high8)) {
+			printf("I2C %3d: Failed to write to subchannel %d\n", address,
+					register_start);
 		}
 	}
 }
@@ -176,12 +187,11 @@ void PWMChip::writeSubChannel(uint8_t register_start, bool full, uint32_t period
 void PWMChip::getSubChannel(uint8_t subchannel, bool &full, int &start) {
 	uint8_t high, low, reg;
 	reg = subchannel * 2 + REGBANK_OFFSET;
-	if (pwm_bank->Read(reg, 1, &high) || pwm_bank->Read(reg+1, 1, &low)) {
+	if (pwm_bank->Read(reg, 1, &low) || pwm_bank->Read(reg + 1, 1, &high)) {
 		printf("I2C %3d: Failed to read subchannel bytes\n", address);
-        return;
+		return;
 	}
-	uint32_t s = (((uint32_t)(high << 4)) << 4) | ((uint32_t)low);
-    printf("Subchannel conv: H%x L%x -> %x\n", high, low, s);
+	uint32_t s = (((uint32_t) (high << 4)) << 4) | ((uint32_t) low);
 	start = (int) s;
 	full = (MASK_FULL & high);
 }

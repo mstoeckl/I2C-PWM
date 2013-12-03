@@ -9,15 +9,13 @@ bool testSleep(PWMChip* pwm) {
     return asleep;
 }
 
-void printChannel(PWMChip* pwm, int channel) {
-    bool hf, lf;
-    int hs, ls;
-    pwm->getChannel(channel, hf, hs, lf, ls);
-    printf("%2d::HF %d| HS %d| LF %d|LS %d\n", channel, hf, hs, lf, ls);
+double linJoy(double i) {
+	return (i+1.0)/2.0;
 }
 
 class I_TOO_SEE_YOU: public SimpleRobot {
 	PWMChip* pwms;
+	Joystick* joy;
 public:
 	void RobotInit() {
 		printf("ROBOT INIT!\n");
@@ -27,42 +25,34 @@ public:
         printf("Before: Is asleep: %s\n", testSleep(pwms) ? "YES" : "NO");
 		pwms->setSleep(false);
         printf("After:  Is asleep: %s\n", testSleep(pwms) ? "YES" : "NO");
+        
+        joy = new Joystick(1);;
 	}
 
 	void Autonomous(void) {
         printf("AUTON\n");
 
-        printChannel(pwms, 0);
-        printChannel(pwms, 1);
-        
-        pwms->setAllChannels(0.673);
-
-        printChannel(pwms, 0);
-        printChannel(pwms, 1);
-
-        pwms->setChannel(0, 0.200);
-        
-        printChannel(pwms, 0);
-        printChannel(pwms, 1);
+        pwms->printChannel(0);
+        pwms->setChannel(0, 0.75);
+        pwms->printChannel(0);
 	}
 
+	void JoyToChannel() {
+		pwms->setChannel(0, linJoy(joy->GetX()));
+		pwms->setChannel(1, linJoy(joy->GetY()));
+		pwms->setChannel(2, linJoy(joy->GetZ()));
+		printf("-----\n");
+        pwms->printChannel(0);
+        pwms->printChannel(1);
+        pwms->printChannel(2);
+	}
+	
 	void OperatorControl(void) {
-        const int CYCLES = 200;
 		printf("OPCONT\n");
 		// we change LED1 frequency
-		bool hf, lf;
-		int hs, ls;
 		
-		int i = 0;
 		while (IsOperatorControl() && IsEnabled()) {
-            float time = i / CYCLES;
-			printf("Write: %1.4f\n", time);
-            pwms->setChannel(0, time);
-
-            printChannel(pwms, 0);
-
-			i = (i+1)%(CYCLES+1);
-
+			JoyToChannel();
             Wait(0.05);
 		}
 	}
@@ -73,6 +63,10 @@ public:
 
 	void Disabled() {
 		printf("DISABLED\n");
+		while (IsDisabled()) {
+			JoyToChannel();
+			Wait(0.05);
+		}
 	}
 };
 

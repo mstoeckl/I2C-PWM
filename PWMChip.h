@@ -24,6 +24,8 @@ public:
 	/** Takes a value in Hz. Wakes up the PWM chip
 	 * Range is 23.8 Hz to 6104 Hz */
 	void setPreScale(float update_rate);
+	
+	void printChannel(int channel);
 
 	virtual ~PWMChip();
 private:
@@ -31,7 +33,7 @@ private:
 	 * of 4096 (range 0-4095) of the update period. If one is PWM_OFF (-1).
 	 * Each cycle, at time lowstart, the channel drops low; at time highstart, the 
 	 * channel goes high */
-	void writeChannel(uint8_t channel, int highstart, int lowstart);
+	void writeChannelBlock(uint8_t channel, int highstart, int lowstart);
 	void writeSubChannel(uint8_t subchannel, bool full, uint32_t period);
 	void getSubChannel(uint8_t subchannel, bool &full, int &start);
 	
